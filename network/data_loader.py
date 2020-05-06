@@ -21,8 +21,10 @@ def load_data_mlp(dataType):
         X_test = test_data['X']
         y_test = test_data['y'].reshape(-1)
         y_test = np.array(list(map(fix_0, y_test)))
-        X_train = X_train.reshape(73257, 3072)
-        X_test = X_test.reshape(26032, 3072)
+        X_train = X_train.reshape(3072, 73257)
+        X_test = X_test.reshape(3072, 26032)
+        X_train = np.swapaxes(X_train, 0, 1)
+        X_test = np.swapaxes(X_test, 0, 1)
     elif dataType == DataType.CIFAR:
         (X_train, y_train), (X_test, y_test) = cifar10.load_data()
 
