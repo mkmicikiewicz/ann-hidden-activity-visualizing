@@ -56,7 +56,7 @@ def show_tsne(model_name, epochs, X, Y):
     sns.scatterplot(points_transformed[0, :], points_transformed[1, :], hue=targets, legend='full', palette=palette)
     plt.show()
 
-    return points_transformed.reshape(points_transformed.shape[1], 2)
+    return np.swapaxes(points_transformed, 0, 1)
 
 
 def get_knn_accuracy(X, Y):
