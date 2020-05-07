@@ -85,3 +85,7 @@ def save_network_history_to_file(network_history, model_name, epochs):
 
 def load_network_history_from_file(model_name, epochs):
     return pd.read_json(MODEL_PATH_PREFIX + model_name + "_" + str(epochs) + "_history.json")
+
+
+def predict_classes(model, X):
+    return model.predict_classes(X)

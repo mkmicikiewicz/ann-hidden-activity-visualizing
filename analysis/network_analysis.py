@@ -1,11 +1,13 @@
 from os.path import exists
+
 import matplotlib.pyplot as plt
 import numpy as np
-from keras import backend as K
-from sklearn.preprocessing import StandardScaler
-from sklearn.manifold import TSNE
 import seaborn as sns
+from keras import backend as K
+from sklearn.manifold import TSNE
 from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import StandardScaler
+
 from network.constants import TSNE_PATH_PREFIX
 
 
@@ -40,7 +42,7 @@ def get_activations_cnn(model, data):
     return layer_output([data[:2000, :]])
 
 
-def show_tsne(model_name, epochs, X, Y):
+def show_tsne(model_name, epochs, X, Y, Y_predicted=None):
     data = StandardScaler().fit_transform(X)
     targets = np.argmax(Y, axis=1)
 
@@ -50,13 +52,29 @@ def show_tsne(model_name, epochs, X, Y):
     else:
         points_transformed = TSNE(n_components=2, perplexity=30).fit_transform(data).T
         np.save(file_path, points_transformed)
+    points_transformed = np.swapaxes(points_transformed, 0, 1)
 
-    palette = sns.color_palette("bright", 10)
-    plt.figure(figsize=(10, 10))
-    sns.scatterplot(points_transformed[0, :], points_transformed[1, :], hue=targets, legend='full', palette=palette)
-    plt.show()
+    if type(Y_predicted) == None:
+        palette = sns.color_palette("bright", 10)
+        plt.figure(figsize=(10, 10))
+        sns.scatterplot(points_transformed[:, 0], points_transformed[:, 1], hue=targets, legend='full', palette=palette)
+        plt.show()
+    else:
+        Y_diff = targets - Y_predicted
+        styles = np.empty(shape=[0, 1], dtype=str)
+        for y in Y_diff:
+            if y == 0:
+                styles = np.append(styles, 'Matched')
+            else:
+                styles = np.append(styles, 'Mismatched')
 
-    return np.swapaxes(points_transformed, 0, 1)
+        palette = sns.color_palette("bright", 10)
+        plt.figure(figsize=(10, 10))
+        sns.scatterplot(points_transformed[:, 0], points_transformed[:, 1], hue=targets, style=styles,
+                        legend='full', palette=palette)
+        plt.show()
+
+    return points_transformed
 
 
 def get_knn_accuracy(X, Y):
