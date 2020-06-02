@@ -5,6 +5,7 @@ from keras.layers.core import Dense, Dropout, Flatten
 from keras.optimizers import SGD
 from keras.layers import Conv2D, MaxPooling2D
 from keras.models import load_model
+from keras.callbacks import ModelCheckpoint
 from network.constants import DataType
 from network.constants import MODEL_PATH_PREFIX
 
@@ -67,9 +68,13 @@ def load_model_from_file(model_name, epochs):
 
 
 def train_model(model, batch_size, epochs, model_name, X_train, Y_train):
+    weights_path = MODEL_PATH_PREFIX + model_name + "_" + str(epochs) + "_{epoch:2d}.hdf5"
+    checkpoint = ModelCheckpoint(weights_path, monitor='val_accuracy', verbose=1, save_best_only=False,
+                                 save_weights_only=True, mode='auto')
+
     X_train, X_val, Y_train, Y_val = train_test_split(X_train, Y_train, train_size=5 / 6)
     network_history = model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, verbose=1,
-                                validation_data=(X_val, Y_val))
+                                validation_data=(X_val, Y_val), callbacks=[checkpoint])
 
     model.save(MODEL_PATH_PREFIX + model_name + "_" + str(epochs))
     save_network_history_to_file(network_history, model_name, epochs)
@@ -89,3 +94,7 @@ def load_network_history_from_file(model_name, epochs):
 
 def predict_classes(model, X):
     return model.predict_classes(X)
+
+
+def load_weights_from_file(model, model_name, epochs, epoch):
+    model.load_weights(MODEL_PATH_PREFIX + model_name + "_" + str(epochs) + "_" + str(epoch) + ".hdf5")
