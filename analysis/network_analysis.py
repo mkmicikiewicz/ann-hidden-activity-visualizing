@@ -42,7 +42,7 @@ def get_activations_cnn(model, data):
     return layer_output([data[:2000, :]])
 
 
-def show_tsne(model_name, epochs, X, Y, Y_predicted=None):
+def show_tsne(model_name, epochs, X, Y, Y_predicted=None, init=None):
     data = StandardScaler().fit_transform(X)
     targets = np.argmax(Y, axis=1)
 
@@ -50,10 +50,22 @@ def show_tsne(model_name, epochs, X, Y, Y_predicted=None):
     if exists(file_path):
         points_transformed = np.load(file_path)
     else:
-        points_transformed = TSNE(n_components=2, perplexity=30).fit_transform(data).T
-        np.save(file_path, points_transformed)
+        if init is not None:
+            points_transformed = TSNE(n_components=2, perplexity=30, init=init,
+                                      random_state=np.random.RandomState(0)).fit_transform(data).T
+            np.save(file_path, points_transformed)
+        else:
+            points_transformed = TSNE(n_components=2, perplexity=30,
+                                      random_state=np.random.RandomState(0)).fit_transform(data).T
+            np.save(file_path, points_transformed)
     points_transformed = np.swapaxes(points_transformed, 0, 1)
 
+    show_scatterplot(points_transformed, targets, Y_predicted)
+
+    return points_transformed, targets
+
+
+def show_scatterplot(points_transformed, targets, Y_predicted=None):
     if type(Y_predicted) == None:
         palette = sns.color_palette("bright", 10)
         plt.figure(figsize=(10, 10))
@@ -73,8 +85,6 @@ def show_tsne(model_name, epochs, X, Y, Y_predicted=None):
         sns.scatterplot(points_transformed[:, 0], points_transformed[:, 1], hue=targets, style=styles,
                         legend='full', palette=palette)
         plt.show()
-
-    return points_transformed
 
 
 def get_knn_accuracy(X, Y):
