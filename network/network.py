@@ -76,6 +76,8 @@ def train_model(model, batch_size, epochs, model_name, X_train, Y_train):
     network_history = model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, verbose=1,
                                 validation_data=(X_val, Y_val), callbacks=[checkpoint])
 
+
+
     model.save(MODEL_PATH_PREFIX + model_name + "_" + str(epochs))
     save_network_history_to_file(network_history, model_name, epochs)
 
@@ -98,3 +100,11 @@ def predict_classes(model, X):
 
 def load_weights_from_file(model, model_name, epochs, epoch):
     model.load_weights(MODEL_PATH_PREFIX + model_name + "_" + str(epochs) + "_" + str(epoch) + ".hdf5")
+
+def create_neuron_projection(layer):
+    pass
+
+
+
+
+
