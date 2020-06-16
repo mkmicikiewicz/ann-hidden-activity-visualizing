@@ -41,7 +41,6 @@ def get_activations_cnn(model, data):
 
     return layer_output([data[:2000, :]])
 
-
 def show_tsne(model_name, epochs, X, Y, Y_predicted=None, init=None):
     data = StandardScaler().fit_transform(X)
     targets = np.argmax(Y, axis=1)
@@ -101,3 +100,13 @@ def get_knn_accuracy(X, Y):
         ratio += count / 6
 
     return ratio / X.shape[0]
+
+def plot_neuron_projection(x, Y):
+    # plt.figure(figsize=(5, 5))
+    # plt.scatter(x[:, 0], x[:, 1])
+    # plt.show()
+
+    targets = np.argmax(Y, axis=1)
+    plt.figure(figsize=(10, 10))
+    sns.scatterplot(x[:, 0], x[:, 1], hue=targets)
+    plt.show()
