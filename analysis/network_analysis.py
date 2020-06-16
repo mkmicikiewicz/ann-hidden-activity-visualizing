@@ -36,10 +36,12 @@ def get_activations_mlp(model, data):
     return layer_output([data[:2000, :]])
 
 
-def get_activations_cnn(model, data):
+def get_activations_cnn(model, data, size=None):
     layer_output = K.function([model.layers[0].input], [model.layers[9].output, model.layers[10].output])
-
+    if size:
+        return layer_output([data[:size, :]])
     return layer_output([data[:2000, :]])
+
 
 def show_tsne(model_name, epochs, X, Y, Y_predicted=None, init=None):
     data = StandardScaler().fit_transform(X)
@@ -105,8 +107,10 @@ def plot_neuron_projection(x, Y):
     # plt.figure(figsize=(5, 5))
     # plt.scatter(x[:, 0], x[:, 1])
     # plt.show()
-
-    targets = np.argmax(Y, axis=1)
+    # targets = np.argmax(Y, axis=1)
     plt.figure(figsize=(10, 10))
-    sns.scatterplot(x[:, 0], x[:, 1], hue=targets)
+    # palette = sns.color_palette("bright", 10)
+    print('plotting',x.shape)
+    print(x)
+    sns.scatterplot(x[:, 0], x[:, 1])
     plt.show()

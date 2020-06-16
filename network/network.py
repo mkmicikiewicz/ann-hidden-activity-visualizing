@@ -106,13 +106,11 @@ def load_weights_from_file(model, model_name, epochs, epoch):
     model.load_weights(MODEL_PATH_PREFIX + model_name + "_" + str(epochs) + "_" + str(epoch) + ".hdf5")
 
 def create_neuron_projection(layer):
-    coef = np.corrcoef(layer)
+    coef = np.corrcoef(np.transpose(layer))
     for ix, iy in np.ndindex(coef.shape):
         coef[ix, iy] = 1 - abs(coef[ix, iy])
+        if np.isnan(coef[ix,iy]):
+            coef[ix, iy] = 0
     embedding = MDS(n_components=2, dissimilarity='precomputed')
     X_transformed = embedding.fit_transform(coef)
     return X_transformed
-
-
-
-

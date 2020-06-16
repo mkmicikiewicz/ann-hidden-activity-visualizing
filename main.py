@@ -19,19 +19,20 @@ def main():
     # network_history = load_network_history_from_file("svhn_cnn", 100)
     # plot_history(network_history)
 
-    l1_bt, l2_bt = get_activations_cnn(model_bt, X_test)
+    size = 2000
+    l1_bt, l2_bt = get_activations_cnn(model_bt, X_test, size=size)
     Y_predicted_bt = predict_classes(model_bt, X_test)
-    transformed_points_bt, targets_bt = show_tsne("mnist_cnn_test_l2", 0, l2_bt[:2000], Y_test[:2000], Y_predicted_bt[:2000])
-    x_bt = create_neuron_projection(l2_bt[:2000])
-    plot_neuron_projection(x_bt, Y_test[:2000])
+    transformed_points_bt, targets_bt = show_tsne("mnist_cnn_test_l2", 0, l2_bt[:size], Y_test[:size], Y_predicted_bt[:size])
+    x_bt = create_neuron_projection(l2_bt[:size])
+    plot_neuron_projection(x_bt, Y_test[:size])
     #to_do next [11] extremely rand trees
 
 
-    l1, l2 = get_activations_cnn(model, X_test)
+    l1, l2 = get_activations_cnn(model, X_test, size=size)
     Y_predicted = predict_classes(model, X_test)
-    transformed_points, targets = show_tsne("mnist_cnn_test_l2", 100, l2[:2000], Y_test[:2000], Y_predicted[:2000])
-    x = create_neuron_projection(l2[:2000])
-    plot_neuron_projection(x, Y_test[:2000])
+    transformed_points, targets = show_tsne("mnist_cnn_test_l2", 100, l2[:size], Y_test[:size], Y_predicted[:size])
+    x = create_neuron_projection(l2[:size])
+    plot_neuron_projection(x, Y_test[:size])
     # to_do next [11] extremely rand trees
 
 
