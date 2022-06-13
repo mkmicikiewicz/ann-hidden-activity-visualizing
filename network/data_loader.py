@@ -1,6 +1,6 @@
 import numpy as np
-from keras.datasets import mnist, cifar10
-from keras.utils import np_utils
+from tensorflow.keras.datasets import mnist, cifar10
+from tensorflow.keras.utils import to_categorical
 import scipy.io as sio
 from network.constants import DataType
 
@@ -36,8 +36,8 @@ def load_data_mlp(dataType):
     X_train /= 255
     X_test /= 255
 
-    Y_train = np_utils.to_categorical(y_train, 10)
-    Y_test = np_utils.to_categorical(y_test, 10)
+    Y_train = to_categorical(y_train, 10)
+    Y_test = to_categorical(y_test, 10)
 
     return X_train, Y_train, X_test, Y_test
 
@@ -82,7 +82,7 @@ def load_data_cnn(dataType):
     X_train /= 255
     X_test /= 255
 
-    Y_train = np_utils.to_categorical(y_train, 10)
-    Y_test = np_utils.to_categorical(y_test, 10)
+    Y_train = to_categorical(y_train, 10)
+    Y_test = to_categorical(y_test, 10)
 
     return X_train, Y_train, X_test, Y_test
