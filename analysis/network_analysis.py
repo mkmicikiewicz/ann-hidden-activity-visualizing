@@ -72,7 +72,7 @@ def show_tsne(model_name, epochs, X, Y, Y_predicted=None, init=None):
 
 
 def show_scatterplot(points_transformed, targets, Y_predicted=None):
-    if not Y_predicted:
+    if Y_predicted is None:
         palette = sns.color_palette("bright", 10)
         plt.figure(figsize=(10, 10))
         sns.scatterplot(points_transformed[:, 0], points_transformed[:,
@@ -392,7 +392,7 @@ def show_tsne_epoch_trace(model_name, datatype):
             return create_multilayer_perceptron(datatype)
 
         def get_activations(m, d):
-            _, _, _, l4 = get_activations_mlp(m, d)
+            _, _, _, l4 = get_activations_mlp(m, d, 2000)
             return l4
     elif 'cnn' in model_name:
         _, _, X_test, Y_test = load_data_cnn(datatype)
@@ -410,10 +410,10 @@ def show_tsne_epoch_trace(model_name, datatype):
     model = create_model()
     l = get_activations(model, X_test)
     Y_predicted = predict_classes(model, X_test)
-    points_transformed, _ = show_tsne(
+    initial_points, _ = show_tsne(
         model_name + "_last_layer", 0, l, Y_test[:2000], Y_predicted[:2000])
 
-    epoch_points_transformed += [points_transformed]
+    epoch_points_transformed += [initial_points]
 
     for epochs in [20, 40, 60, 80, 100]:
         model = create_model()
@@ -421,7 +421,7 @@ def show_tsne_epoch_trace(model_name, datatype):
         l = get_activations(model, X_test)
         Y_predicted = predict_classes(model, X_test)
         points_transformed, _ = show_tsne(
-            model_name + "_last_layer", epochs, l, Y_test[:2000], Y_predicted[:2000])
+            model_name + "_last_layer", epochs, l, Y_test[:2000], Y_predicted[:2000], initial_points)
 
         epoch_points_transformed += [points_transformed]
 
@@ -451,21 +451,19 @@ def show_trace(points, targets):
 # inter-layer evolution
 # --------------------------------------------------------
 
-def show_tsne_layer_trace(model_name, datatype, show_last=False):
+def show_tsne_layer_trace(model_name, datatype):
     epoch_points_transformed = []
 
     _, _, X_test, Y_test = load_data_mlp(datatype)
 
     model = create_multilayer_perceptron(datatype)
     load_weights_from_file(model, model_name, 100, 100)
-    l1, l2, l3, l4 = get_activations_mlp(model,  X_test)
+    l1, l2, l3, l4 = get_activations_mlp(model,  X_test, 2000)
 
     Y_predicted = predict_classes(model, X_test)
     targets = np.argmax(Y_test[:2000], axis=1)
 
-    layers = [l1, l2, l3]
-    if show_last:
-        layers += [l4]
+    layers = [l1, l2, l3, l4]
 
     initial_points, _ = show_tsne(model_name + "_l1", 100, layers[0], Y_test[:2000],
                                   Y_predicted[:2000])
