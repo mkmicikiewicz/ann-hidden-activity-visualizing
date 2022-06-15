@@ -2,6 +2,7 @@ from os.path import exists
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from tensorflow.keras import backend as K
 from sklearn.manifold import TSNE
@@ -11,6 +12,8 @@ from sklearn.ensemble import ExtraTreesClassifier
 from network.network import *
 from network.data_loader import *
 from network.constants import TSNE_PATH_PREFIX
+from datashader.bundling import hammer_bundle
+import networkx as nx
 
 
 def plot_history(network_history):
@@ -30,12 +33,12 @@ def plot_history(network_history):
     plt.show()
 
 
-def get_activations_mlp(model, data):
+def get_activations_mlp(model, data, size):
     layer_output = K.function([model.layers[0].input],
                               [model.layers[0].output, model.layers[2].output, model.layers[4].output,
                                model.layers[6].output])
 
-    return layer_output([data[:2000, :]])
+    return layer_output([data[:size, :]])
 
 
 def get_activations_cnn(model, data, size=None):
@@ -50,26 +53,25 @@ def show_tsne(model_name, epochs, X, Y, Y_predicted=None, init=None):
     targets = np.argmax(Y, axis=1)
 
     file_path = TSNE_PATH_PREFIX + model_name + "_" + str(epochs) + ".npy"
-    if exists(file_path):
-        points_transformed = np.load(file_path)
-    else:
-        if init is not None:
-            points_transformed = TSNE(n_components=2, perplexity=30, init=init,
-                                      random_state=np.random.RandomState(0)).fit_transform(data).T
-            np.save(file_path, points_transformed)
-        else:
-            points_transformed = TSNE(n_components=2, perplexity=30,
-                                      random_state=np.random.RandomState(0)).fit_transform(data).T
-            np.save(file_path, points_transformed)
-    points_transformed = np.swapaxes(points_transformed, 0, 1)
+    # if exists(file_path):
+    #     points_transformed = np.load(file_path)
+    # else:
+    if init is not None:
+        points_transformed = TSNE(n_components=2, perplexity=30, init=init,
+                                  random_state=np.random.RandomState(0)).fit_transform(data).T
 
+    else:
+        points_transformed = TSNE(n_components=2, perplexity=30,
+                                  random_state=np.random.RandomState(0)).fit_transform(data).T
+    points_transformed = np.swapaxes(points_transformed, 0, 1)
+    np.save(file_path, points_transformed)
     show_scatterplot(points_transformed, targets, Y_predicted)
 
     return points_transformed, targets
 
 
 def show_scatterplot(points_transformed, targets, Y_predicted=None):
-    if type(Y_predicted) == None:
+    if not Y_predicted:
         palette = sns.color_palette("bright", 10)
         plt.figure(figsize=(10, 10))
         sns.scatterplot(points_transformed[:, 0], points_transformed[:, 1], hue=targets, legend='full', palette=palette)
@@ -161,6 +163,7 @@ def compare_projections(datatype, model_name, n_layer, digit):
 
 
 def plot_discriminative_map(activations, Y_test, size):
+    palette = sns.color_palette('bright', 10)
     lst = []
     for digit in range(10):
         digit_test = np.argmax(Y_test[:size], axis=1) == digit
@@ -175,7 +178,7 @@ def plot_discriminative_map(activations, Y_test, size):
     for n in range(10):
         projection_part = projection[labels == n]
         saturation = norm(arr[:, labels == n, n])
-        sns.scatterplot(x=projection_part[:, 0], y=projection_part[:, 1], alpha=saturation, ax=ax, label=n)
+        sns.scatterplot(x=projection_part[:, 0], y=projection_part[:, 1], alpha=saturation, ax=ax, label=n, palette=palette)
 
 
 def compare_discriminative_map(datatype, model_name, n_layer, size):
@@ -197,3 +200,152 @@ def compare_discriminative_map(datatype, model_name, n_layer, size):
         layer_at = get_activations_cnn(model_at, X_test)[n_layer - 1]
     plot_discriminative_map(layer_bt, Y_test, size)
     plot_discriminative_map(layer_at, Y_test, size)
+
+
+def show_seq_projections(datatype, model_name, n_layer, epoch, size):
+    init = None
+    if 'mlp' in model_name:
+        X_train, Y_train, X_test, Y_test = load_data_mlp(datatype)
+        model_at = create_multilayer_perceptron(datatype)
+        load_weights_from_file(model_at, model_name, 100, epoch)
+        layer_at = get_activations_mlp(model_at, X_test, size)[n_layer]
+    elif 'cnn' in model_name:
+        X_train, Y_train, X_test, Y_test = load_data_cnn(datatype)
+        model_at = create_cnn(datatype)
+        load_weights_from_file(model_at, model_name, 100, epoch)
+        layer_at = get_activations_cnn(model_at, X_test, size)[n_layer]
+    file_path = TSNE_PATH_PREFIX + model_name + "_" + str(epoch) + ".npy"
+    if os.path.exists(file_path):
+        init = np.load(file_path)
+    points_transformed, targets = show_tsne(model_name, epoch, layer_at, Y_test[:size], init=init)
+    return points_transformed, targets
+
+
+def inter_layer_evolution(points_lst, targets):
+    points_by_digit = []
+    for n in range(10):
+        points_by_layer = []
+        for points in points_lst:
+            ind = targets == n
+            points_by_layer.append(points[ind])
+        points_by_digit.append(points_by_layer)
+    fig, ax = plt.subplots(1, 1, figsize=(15, 10))
+
+    for label, epoch_points in enumerate(points_by_digit):
+        activation_lst = []
+        for n in range(epoch_points[0].shape[0]):
+            layer_lst = []
+            for count, layer in enumerate(epoch_points):
+                layer_lst.append(epoch_points[count][n, :])
+            activation_lst.append(layer_lst)
+        dfs_lst = []
+        for activation_count, lst in enumerate(activation_lst, 1):
+            dct = {}
+            for count, value in enumerate(lst, 1):
+                dct[f'activation_{activation_count}_layer_{count}'] = value
+            df = pd.DataFrame(dct)
+            dfs_lst.append(df)
+        graph = nx.Graph()
+        for df in dfs_lst:
+            df_dense = df.corr('pearson')
+            for edge, _ in df_dense.unstack().items():
+                if int(edge[0].split('_')[-1]) + 1 == int(edge[1].split('_')[-1]):
+                    graph.add_edge(*edge)
+        c_dct = dict()
+        for layer_count, layer_value in enumerate(epoch_points, 1):
+            for activation_count, activation_value in enumerate(layer_value, 1):
+                c_dct[f'activation_{activation_count}_layer_{layer_count}'] = activation_value
+        complete_df = pd.DataFrame(c_dct).T
+        complete_df.reset_index(inplace=True)
+        nodes = complete_df.rename(columns={'index': 'name', 0: 'x', 1: 'y'})
+        sources = list()
+        targets = list()
+        for source, target in list(graph.edges):
+            sources.append(nodes[nodes['name'] == source].index[0])
+            targets.append(nodes[nodes['name'] == target].index[0])
+        edges = pd.DataFrame({'source': sources, 'target': targets})
+        hb = hammer_bundle(nodes, edges)
+        hb.plot(x="x", y="y", figsize=(10, 10), ax=ax, alpha=0.7, label=label)
+
+
+def get_all_activations(datatype, model_name, n_layer, size):
+    activations = []
+    for epoch in [0, 20, 40, 60, 80, 100]:
+        if 'mlp' in model_name:
+            X_train, Y_train, X_test, Y_test = load_data_mlp(datatype)
+            model_at = create_multilayer_perceptron(datatype)
+            if epoch:
+                load_weights_from_file(model_at, model_name, 100, epoch)
+            layer_at = get_activations_mlp(model_at, X_test, size)[n_layer-1]
+        elif 'cnn' in model_name:
+            X_train, Y_train, X_test, Y_test = load_data_cnn(datatype)
+            model_at = create_cnn(datatype)
+            if epoch:
+                load_weights_from_file(model_at, model_name, 100, epoch)
+            layer_at = get_activations_cnn(model_at, X_test, size)[n_layer-1]
+        activations.append(layer_at)
+    return activations, Y_test[:size]
+
+
+def show_whole_tsne(X, Y):
+    data = StandardScaler().fit_transform(X)
+    targets = np.argmax(Y, axis=1)
+    points_transformed = TSNE(n_components=2, perplexity=30, random_state=np.random.RandomState(0)).fit_transform(data).T
+    points_transformed = np.swapaxes(points_transformed, 0, 1)
+    show_scatterplot(points_transformed, targets)
+    return points_transformed, targets
+
+
+def process_activations(activations, Y_test, size):
+    arr_activations = np.concatenate(activations, axis=0)
+    arr_targets = np.concatenate([Y_test for _ in range(6)], axis=0)
+    points_transformed, targets = show_whole_tsne(arr_activations, arr_targets)
+    points_lst = list(points_transformed.reshape(6, size, 2))
+    return points_lst, targets[:size]
+
+
+def inter_epoch_evolution(points_lst, targets):
+    points_by_digit = []
+    for n in range(10):
+        points_by_layer = []
+        for points in points_lst:
+            ind = targets == n
+            points_by_layer.append(points[ind])
+        points_by_digit.append(points_by_layer)
+    fig, ax = plt.subplots(1, 1, figsize=(15, 10))
+
+    for label, epoch_points in enumerate(points_by_digit):
+        activation_lst = []
+        for n in range(epoch_points[0].shape[0]):
+            epoch_lst = []
+            for count, epoch in enumerate(epoch_points):
+                epoch_lst.append(epoch_points[count][n, :])
+            activation_lst.append(epoch_lst)
+        dfs_lst = []
+        for activation_count, lst in enumerate(activation_lst, 1):
+            dct = {}
+            for count, value in enumerate(lst):
+                dct[f'activation_{activation_count}_epoch_{count * 20}'] = value
+            df = pd.DataFrame(dct)
+            dfs_lst.append(df)
+        graph = nx.Graph()
+        for df in dfs_lst:
+            df_dense = df.corr('pearson')
+            for edge, _ in df_dense.unstack().items():
+                if int(edge[0].split('_')[-1]) + 20 == int(edge[1].split('_')[-1]):
+                    graph.add_edge(*edge)
+        c_dct = dict()
+        for epoch_count, epoch_value in enumerate(epoch_points):
+            for activation_count, activation_value in enumerate(epoch_value, 1):
+                c_dct[f'activation_{activation_count}_epoch_{epoch_count * 20}'] = activation_value
+        complete_df = pd.DataFrame(c_dct).T
+        complete_df.reset_index(inplace=True)
+        nodes = complete_df.rename(columns={'index': 'name', 0: 'x', 1: 'y'})
+        sources = list()
+        targets = list()
+        for source, target in list(graph.edges):
+            sources.append(nodes[nodes['name'] == source].index[0])
+            targets.append(nodes[nodes['name'] == target].index[0])
+        edges = pd.DataFrame({'source': sources, 'target': targets})
+        hb = hammer_bundle(nodes, edges)
+        hb.plot(x="x", y="y", figsize=(10, 10), ax=ax, alpha=0.7, label=label)

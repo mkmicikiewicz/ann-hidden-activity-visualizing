@@ -11,6 +11,7 @@ from network.constants import MODEL_PATH_PREFIX
 import numpy as np
 from sklearn.manifold import MDS
 from sklearn.ensemble import ExtraTreesClassifier
+import os
 
 
 
@@ -68,7 +69,7 @@ def create_cnn(dataType):
 
 
 def load_model_from_file(model_name, epochs):
-    return load_model(MODEL_PATH_PREFIX + model_name + "_" + str(epochs))
+    return load_model(os.path.join(MODEL_PATH_PREFIX, model_name, 'model_'+model_name+f'_{epochs}'))
 
 
 def train_model(model, batch_size, epochs, model_name, X_train, Y_train):
