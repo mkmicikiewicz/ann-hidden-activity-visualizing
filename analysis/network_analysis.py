@@ -436,7 +436,7 @@ def show_trace(points, targets):
     for i in range(len(points[0][:, 0])):
         for p in range(len(points)-1):
             c = cmap(targets[i])
-            c = (c[0], c[1], c[2], (p+1)/len(points))
+            c = (c[0], c[1], c[2], 2**(1 + p - len(points)))
             xs = [points[p][i][0], points[p+1][i][0]]
             ys = [points[p][i][1], points[p+1][i][1]]
             plt.plot(xs, ys, c=c)
