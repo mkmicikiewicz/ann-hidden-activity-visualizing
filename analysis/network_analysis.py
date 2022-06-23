@@ -132,6 +132,14 @@ def plot_new_neuron_projection(x, hue=None):
 
 
 def compare_projections(datatype, model_name, n_layer, digit):
+    """
+    function loading model and dataset, then plotting neuron projections before and after training
+    :param datatype: DataType MNIST|CIFAR
+    :param model_name: name under model was saved
+    :param n_layer: layer to project from
+    :param digit: digit to discriminate
+    :return:
+    """
     size = 2000
 
     if 'mlp' in model_name:
@@ -166,6 +174,13 @@ def compare_projections(datatype, model_name, n_layer, digit):
 
 
 def plot_discriminative_map(activations, Y_test, size):
+    """
+    Function creating and plotting discriminative map of neurons
+    :param activations: layer activations to create projection from
+    :param Y_test: test target
+    :param size: data size
+    :return:
+    """
     palette = sns.color_palette('bright', 10)
     lst = []
     for digit in range(10):
@@ -187,6 +202,14 @@ def plot_discriminative_map(activations, Y_test, size):
 
 
 def compare_discriminative_map(datatype, model_name, n_layer, size):
+    """
+    function loading model and dataset, then plotting discriminative map of neurons before and after training
+    :param datatype: DataType MNIST|CIFAR
+    :param model_name: name under model was saved
+    :param n_layer: layer to project from
+    :param size: data size
+    :return:
+    """
     if 'mlp' in model_name:
         X_train, Y_train, X_test, Y_test = load_data_mlp(datatype)
         model_bt = create_multilayer_perceptron(datatype)
@@ -208,6 +231,15 @@ def compare_discriminative_map(datatype, model_name, n_layer, size):
 
 
 def show_seq_projections(datatype, model_name, n_layer, epoch, size):
+    """
+    function creating sequence of projections for inter-layer evolution
+    :param datatype: DataType MNIST|CIFAR
+    :param model_name: name under model was saved
+    :param n_layer: layer to project from
+    :param epoch: epoch to project after
+    :param size: data size
+    :return: (projection points, their target)
+    """
     init = None
     if 'mlp' in model_name:
         X_train, Y_train, X_test, Y_test = load_data_mlp(datatype)
@@ -228,6 +260,13 @@ def show_seq_projections(datatype, model_name, n_layer, epoch, size):
 
 
 def inter_layer_evolution(points_lst, targets):
+    """
+    Function creating inter-layer evolution from sequence of projections
+    :param points_lst: list of transformed points(projections)
+    :param targets: target class
+    :return:
+    """
+    #split points by class
     points_by_digit = []
     for n in range(10):
         points_by_layer = []
@@ -237,6 +276,7 @@ def inter_layer_evolution(points_lst, targets):
         points_by_digit.append(points_by_layer)
     fig, ax = plt.subplots(1, 1, figsize=(15, 10))
 
+    # create graph
     for label, epoch_points in enumerate(points_by_digit):
         activation_lst = []
         for n in range(epoch_points[0].shape[0]):
@@ -257,6 +297,7 @@ def inter_layer_evolution(points_lst, targets):
             for edge, _ in df_dense.unstack().items():
                 if int(edge[0].split('_')[-1]) + 1 == int(edge[1].split('_')[-1]):
                     graph.add_edge(*edge)
+        #reorganize format to format requested by hammer_bundle
         c_dct = dict()
         for layer_count, layer_value in enumerate(epoch_points, 1):
             for activation_count, activation_value in enumerate(layer_value, 1):
@@ -275,6 +316,14 @@ def inter_layer_evolution(points_lst, targets):
 
 
 def get_all_activations(datatype, model_name, n_layer, size):
+    """
+    Function returning list of all activations for inter-epoch evolution
+    :param datatype: DataType MNIST|CIFAR
+    :param model_name: name under model was saved
+    :param n_layer: layer to project from
+    :param size: data size
+    :return: list of activations from each epoch
+    """
     activations = []
     for epoch in [0, 20, 40, 60, 80, 100]:
         if 'mlp' in model_name:
@@ -294,6 +343,12 @@ def get_all_activations(datatype, model_name, n_layer, size):
 
 
 def show_whole_tsne(X, Y):
+    """
+    Function plotting joint projections for inter-layer evolution
+    :param X: list of activations
+    :param Y: targets
+    :return: (projection points, their target)
+    """
     data = StandardScaler().fit_transform(X)
     targets = np.argmax(Y, axis=1)
     points_transformed = TSNE(n_components=2, perplexity=30,
@@ -304,6 +359,13 @@ def show_whole_tsne(X, Y):
 
 
 def process_activations(activations, Y_test, size):
+    """
+    Function reorganizing data
+    :param activations: activations array
+    :param Y_test: target
+    :param size: data size
+    :return: (list of activations, their targets)
+    """
     arr_activations = np.concatenate(activations, axis=0)
     arr_targets = np.concatenate([Y_test for _ in range(6)], axis=0)
     points_transformed, targets = show_whole_tsne(arr_activations, arr_targets)
@@ -312,6 +374,13 @@ def process_activations(activations, Y_test, size):
 
 
 def inter_epoch_evolution(points_lst, targets):
+    """
+    Function creating inter-epoch evolution from joint activations
+    :param points_lst: list of transformed points(projections)
+    :param targets: target class
+    :return:
+    """
+    # split points by their class
     points_by_digit = []
     for n in range(10):
         points_by_layer = []
@@ -321,6 +390,7 @@ def inter_epoch_evolution(points_lst, targets):
         points_by_digit.append(points_by_layer)
     fig, ax = plt.subplots(1, 1, figsize=(15, 10))
 
+    #create graph
     for label, epoch_points in enumerate(points_by_digit):
         activation_lst = []
         for n in range(epoch_points[0].shape[0]):
@@ -341,6 +411,7 @@ def inter_epoch_evolution(points_lst, targets):
             for edge, _ in df_dense.unstack().items():
                 if int(edge[0].split('_')[-1]) + 20 == int(edge[1].split('_')[-1]):
                     graph.add_edge(*edge)
+        #reorganize format for hammer_bundle
         c_dct = dict()
         for epoch_count, epoch_value in enumerate(epoch_points):
             for activation_count, activation_value in enumerate(epoch_value, 1):
