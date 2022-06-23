@@ -429,21 +429,17 @@ def show_tsne_epoch_trace(model_name, datatype):
 
 
 def show_trace(points, targets):
-    cmaps = ['Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
-                      'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
-                      'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn']
+    cmap = plt.get_cmap('tab10')
 
-    palette = sns.color_palette("bright", 10)
     plt.figure(figsize=(10, 10))
-    # sns.scatterplot(points_transformed[:, 0], points_transformed[:,
-    #                 1], hue=targets, legend='full', palette=palette)
 
     for i in range(len(points[0][:, 0])):
         for p in range(len(points)-1):
-            cmap = cmap = plt.get_cmap(cmaps[targets[i]])
+            c = cmap(targets[i])
+            c = (c[0], c[1], c[2], 2**(1 + p - len(points)))
             xs = [points[p][i][0], points[p+1][i][0]]
             ys = [points[p][i][1], points[p+1][i][1]]
-            plt.plot(xs, ys, c=cmap(p+1/len(points)))
+            plt.plot(xs, ys, c=c)
     plt.show()
 
 
